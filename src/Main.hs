@@ -38,7 +38,7 @@ main :: IO ()
 main = do
   args <- getArgs
 
-  -- First, we only accept a single directory to dedup
+  -- Accept every given path. If none are given, it's CWD.
   let actualFiles = filter (not . isPrefixOf "--") args
   dirs <- case actualFiles of
     [] -> NE.singleton <$> pwd
@@ -53,6 +53,7 @@ main = do
 
   let innerDirNameDoesNotHaveToMatch = "diff" `elem` options
 
+  -- Can't proceed if the user is too retarded to type in '--help'.
   let unknownOptions = (\\ ["help", "diff"]) options
   unless (null unknownOptions) $ do
     err $ "Unrecognized options: " <> fromString (show unknownOptions)
@@ -62,6 +63,7 @@ main = do
   results <- for dirs $ \dir -> do
     dirStat <- stat dir
 
+    -- Check if the parent directory is actually a directory.
     if isDirectory dirStat then do
       filenames <- files dir
       case filenames of
@@ -88,7 +90,7 @@ main = do
           return (ExitFailure 1)
 
         fs -> do
-          err $ "There's more than one file in " <> fpLine dir <> " -> possible duplicates."
+          err $ "There's more than one file in " <> fpLine dir <> ". It's not worth it."
           return (ExitFailure 1)
 
     else do
